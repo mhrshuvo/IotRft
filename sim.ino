@@ -18,32 +18,18 @@
 
    void SendSMS(String msg)
 {
-  GSMSerial.print("AT+CMGS=\"+8801939261025\"");  //Your phone number don't forget to include your country code, example +212123456789"
-  delay(500);
-  GSMSerial.print(msg);       //This is the text to send to the phone number, don't make it too long or you have to modify the SoftwareSerial buffer
-  delay(500);
-  GSMSerial.print((char)26);// (required according to the datasheet)
-  delay(500);
-  GSMSerial.println();
-  Serial.println("Text Sent." + msg);
-  delay(500);
+   GSMSerial.println("AT+CMGS=\"+8801600365372\""); // 1)
+  updateSerial();
+  GSMSerial.print(msg); // 2) text content 
+  updateSerial();
+  GSMSerial.write(26); // 3)
 }
 
+
  void Call(){
-   GSMSerial.println("ATD+ +8801799410877;"); //  change ZZ with country code and xxxxxxxxxxx with phone number to dial
+   GSMSerial.println("ATD+ +8801600365372;"); //  change ZZ with country code and xxxxxxxxxxx with phone number to dial
    updateSerial();
    delay(20000); // wait for 20 seconds...
    GSMSerial.println("ATH"); //hang up
-   updateSerial();
+   updateSerial(); 
   }
-
-void updateSerial() {
-  delay(500);
-  while (Serial.available()) {
-   GSMSerial.write(Serial.read());//Forward what Serial received to Software Serial Port
-  }
-
-  while (GSMSerial.available()) {
-    Serial.write(GSMSerial.read());//Forward what Software Serial received to Serial Port
-  }
-}

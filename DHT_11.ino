@@ -33,8 +33,8 @@
 /*****************************Globals************************************************/
 float           Ro = 0;
 
-const char* ssid = "Swapnil";
-const char* password = "nill5055";
+const char* ssid = "Rafti";
+const char* password = "Rafti1234";
 
 //https://api.telegram.org/bot5235051335:AAEYvaM90WJlriuDB1nuuVIPyq-oS37Blqk/getUpdates
 
@@ -51,7 +51,7 @@ SoftwareSerial GSMSerial(D7,D8);
 WiFiClientSecure client;
 UniversalTelegramBot bot(BOTtoken, client);
 
-int botRequestDelay = 1000;
+int botRequestDelay = 500;
 unsigned long lastTimeBotRan;
 
 #define dht_dpin 2
@@ -59,12 +59,18 @@ DHT dht(dht_dpin, DHTTYPE);
 
 const int flame = D0;
 const int buzz = D1; 
+int ledpin = 4; 
+int button = 0;
+int buttonState=0;
 
 void setup(void)
 { 
   dht.begin();
   pinMode(flame,INPUT);
   pinMode(buzz,OUTPUT);
+  pinMode(ledpin, OUTPUT);
+  pinMode(button, INPUT);
+  digitalWrite(ledpin, HIGH);
   Serial.begin(9600);
   #ifdef ESP8266
     configTime(0, 0, "pool.ntp.org");      // get UTC time via NTP
@@ -89,15 +95,22 @@ void setup(void)
   
 }
 void loop() {
+   updateSerial();
     Serial.println(dht.readTemperature());
     Serial.println(dht.readHumidity());
     Serial.println(digitalRead(flame));
     Serial.println(MQGetGasPercentage(MQRead(MQ2PIN)/Ro,GAS_LPG));
-if(digitalRead(flame) == 0){
-        tone(buzz, 1000, 15000);
+    
+   if(digitalRead(flame) == 0){
+        alarm();
+        digitalWrite(ledpin, LOW);
         bot.sendMessage(CHAT_ID, "Flame is detected", "");
-        SendSMS("Flame deected fire! fire!"); 
-}
+        Call();
+        updateSerial();
+        SendSMS("Flame deected fire. fire. In Floor 1, Need Help.Fire : https://maps.google.com/?q=23.8883,90.3907"); 
+        updateSerial();
+        
+   }
   
     if (millis() > lastTimeBotRan + botRequestDelay)  {
     int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
@@ -111,19 +124,29 @@ if(digitalRead(flame) == 0){
 
 //  bot.sendMessage(CHAT_ID, "temp = " +String(dht.readTemperature()) +" * c", "");
   
-  if(dht.readTemperature() > 45 && dht.readHumidity() < 40 ){
-    SendSMS("Temp is higher then 45 and humidity is less then 40");
-      bot.sendMessage(CHAT_ID, "Temp is higher then 45 and humidity is less then 40", "");
-    if(MQGetGasPercentage(MQRead(MQ2PIN)/Ro,GAS_LPG) > 150){
-      SendSMS("3rd stage Smoke deected");
-       bot.sendMessage(CHAT_ID, "3rd stage Smoke deected", "");
-      if(digitalRead(flame) == 0){
-        tone(buzz, 1000, 5000);
-        SendSMS("4th stage flame deected fire! fire!");
-        bot.sendMessage(CHAT_ID, "4th stage flame deected fire! fire!", "");
-      }
-    }
-  }
+//  if(dht.readTemperature() > 45 && dht.readHumidity() < 40 ){
+//    SendSMS("Temp is higher then 45 and humidity is less then 40");
+//      bot.sendMessage(CHAT_ID, "Temp is higher then 45 and humidity is less then 40", "");
+//    if(MQGetGasPercentage(MQRead(MQ2PIN)/Ro,GAS_LPG) > 150){
+//      SendSMS("3rd stage Smoke deected");
+//       bot.sendMessage(CHAT_ID, "3rd stage Smoke deected", "");
+//      if(digitalRead(flame) == 0){
+//        tone(buzz, 1000, 5000);
+//        SendSMS("4th stage flame deected fire! fire!");
+//        bot.sendMessage(CHAT_ID, "4th stage flame deected fire! fire!", "");
+//      }
+//    }
+//  }
+buttonState=digitalRead(button); // put your main code here, to run repeatedly:
+ if (buttonState == 1)
+ {
+ digitalWrite(ledpin, HIGH); 
+ delay(200);
+ }
+ if (buttonState==0)
+ { digitalWrite(ledpin,LOW); 
+ delay(200);
+ }
 }
 
 void handleNewMessages(int numNewMessages) {
@@ -150,6 +173,7 @@ void handleNewMessages(int numNewMessages) {
       welcome += "/readings \n";
       welcome += "/temperature \n";
       welcome += "/humidity \n\n";
+      welcome += "/gas \n";
       welcome += "Developed by \n Sumaia Akter Rafti \t 18203011 Tajrian Jahan Mou \n 18103367 \n";
       bot.sendMessage(chat_id, welcome, "");
     }
@@ -214,4 +238,16 @@ String getReadings(){
   String message = String(getTemperature()) + "\n";
   message += String (getHumidity()) + "\n";
   return message;
+}
+
+
+void updateSerial() {
+  delay(500);
+  while (Serial.available()) {
+   GSMSerial.write(Serial.read());//Forward what Serial received to Software Serial Port
+  }
+
+  while (GSMSerial.available()) {
+    Serial.write(GSMSerial.read());//Forward what Software Serial received to Serial Port
+  }
 }
